@@ -35,4 +35,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: Upload Build
-        path: ${{env.SOLUTION_FILE_PATH}}build\windows\Launcher.exe
+        path: ${{env.SOLUTION_FILE_PATH}}build\bin\Launcher.exe
