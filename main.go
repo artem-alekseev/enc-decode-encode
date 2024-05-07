@@ -17,9 +17,9 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:         "Launcher",
+		Title:         "ENCTool",
 		Width:         640,
-		Height:        640,
+		Height:        480,
 		DisableResize: true,
 		AssetServer: &assetserver.Options{
 			Assets: assets,

@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"io/ioutil"
-	"log"
 	"os"
 )
 
@@ -42,7 +41,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
-func decode(buffer []byte, xex XorHex) []byte {
+func decode(buffer []byte, xex XorHex) ([]byte, error) {
 	buffer = buffer[4:]
 
 	buffer[0] ^= xex.First
@@ -53,27 +52,28 @@ func decode(buffer []byte, xex XorHex) []byte {
 	reader := bytes.NewReader(buffer)
 	inflated, err := ioutil.ReadAll(flate.NewReader(reader))
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return inflated
+	return inflated, nil
 }
 
-func encode(buffer []byte, xex XorHex) []byte {
+func encode(buffer []byte, xex XorHex) ([]byte, error) {
 	var buf bytes.Buffer
 	fw, err := flate.NewWriter(&buf, flate.DefaultCompression)
+
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	_, err = fw.Write(buffer)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	err = fw.Close()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	buffer = buf.Bytes()
@@ -83,51 +83,65 @@ func encode(buffer []byte, xex XorHex) []byte {
 	buffer[2] ^= xex.Third
 	buffer[3] ^= xex.Four
 
-	return buffer
+	retbuff := make([]byte, 0)
+	retbuff = append(retbuff, 0x0E, 0, 0, 0)
+	retbuff = append(retbuff, buffer...)
+
+	return retbuff, nil
 }
 
-func decompress(rf string, wf string, xex XorHex) {
+func decompress(rf string, wf string, xex XorHex) error {
 	data, err := os.ReadFile(rf)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	decodedData := decode(data, xex)
+	decodedData, err := decode(data, xex)
+	if err != nil {
+		return err
+	}
 
 	fileWr, err := os.Create(wf)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	_, err = fileWr.Write(decodedData)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer fileWr.Close()
+
+	return nil
 }
 
-func compress(rf string, wf string, xex XorHex) {
+func compress(rf string, wf string, xex XorHex) error {
 	data, err := os.ReadFile(rf)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	encodedData := encode(data, xex)
+	encodedData, err := encode(data, xex)
+	if err != nil {
+		return err
+	}
 
 	fileWr, err := os.Create(wf)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	_, err = fileWr.Write(encodedData)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer fileWr.Close()
+
+	return nil
 }
 
 func (a *App) OpenEnc() string {
 	file, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{Filters: []runtime.FileFilter{{DisplayName: "ENC/DEC files", Pattern: "*.enc;*.dec"}}})
 	if err != nil {
-		log.Fatal(err)
+		return "Error : " + err.Error()
 	}
 
 	a.rf = file
@@ -153,12 +167,18 @@ func (a *App) DecompressEnc(xor Xor) string {
 
 	file, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{Filters: []runtime.FileFilter{{DisplayName: "DEC files", Pattern: "*.dec"}}})
 	if err != nil {
-		log.Fatal(err)
+		return "Error : " + err.Error()
 	}
 
-	decompress(a.rf, file, xorHex)
+	err = decompress(a.rf, file, xorHex)
+	if err != nil {
+		return "Error : " + err.Error()
+	}
 
 	return "Saved : " + file
+}
+func (a *App) CloseApp() {
+	os.Exit(0)
 }
 
 func (a *App) CompressEnc(xor Xor) string {
@@ -179,10 +199,13 @@ func (a *App) CompressEnc(xor Xor) string {
 
 	file, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{Filters: []runtime.FileFilter{{DisplayName: "ENC files", Pattern: "*.enc"}}})
 	if err != nil {
-		log.Fatal(err)
+		return "Error : " + err.Error()
 	}
 
-	compress(a.rf, file, xorHex)
+	err = compress(a.rf, file, xorHex)
+	if err != nil {
+		return "Error : " + err.Error()
+	}
 
 	return "Saved : " + file
 }

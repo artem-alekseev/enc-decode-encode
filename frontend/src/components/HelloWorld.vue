@@ -1,17 +1,21 @@
 <script setup>
 import {reactive} from 'vue'
-import {OpenEnc, DecompressEnc, CompressEnc} from '../../wailsjs/go/main/App'
+import {CloseApp, CompressEnc, DecompressEnc, OpenEnc} from '../../wailsjs/go/main/App'
 
 const data = reactive({
   resultText: "",
-  file: "None",
+  file: "Open file",
   xor: {
-    first : "92",
-    second : "65",
-    third : "67",
-    four : "57",
+    first: "92",
+    second: "65",
+    third: "67",
+    four: "57",
   },
 })
+
+function closeApp() {
+  CloseApp()
+}
 
 function openFile() {
   OpenEnc().then(result => {
@@ -20,26 +24,38 @@ function openFile() {
 }
 
 function compressFile() {
-  CompressEnc(data.xor)
+  CompressEnc(data.xor).then(result => {
+    data.file = result
+  })
 }
 
 function decompressFile() {
-  DecompressEnc(data.xor)
+  DecompressEnc(data.xor).then(result => {
+    data.file = result
+  })
 }
 
 </script>
 
 <template>
-  <main style="--wails-draggable:no-drag">
-    File
-    <button @click="openFile()">Open ENC</button>
-    <div id="result" class="result">File: {{ data.file }}</div><br>
-    XOR 1 <input v-model="data.xor.first"><br>
-    XOR 2 <input v-model="data.xor.second"><br>
-    XOR 3 <input v-model="data.xor.third"><br>
-    XOR 4 <input v-model="data.xor.four"><br>
-    <button @click="compressFile()">Compress</button>
-    <button @click="decompressFile()">Decompress</button>
+  <main style="--wails-draggable:no-drag" class="container">
+    <div id="result" class="result">{{ data.file }}</div>
+    <div class=" btn-group btn-group-lg">
+      <button class="btn btn-success" @click="openFile()">Open ENC \ DEC</button>
+      <button class="btn btn-success" @click="compressFile()">Compress</button>
+      <button class="btn btn-success" @click="decompressFile()">Decompress</button>
+      <button class="btn btn-danger" @click="closeApp()">Close</button>
+    </div>
+    <div class="form-group mt-2">
+      <label for="xor1">XOR 1</label>
+      <input id="xor1" type="text" class="form-control small" v-model="data.xor.first">
+      <label for="xor2">XOR 2</label>
+      <input id="xor2" type="text" class="form-control" v-model="data.xor.second">
+      <label for="xor3">XOR 3</label>
+      <input id="xor3" type="text" class="form-control" v-model="data.xor.third">
+      <label for="xor4">XOR 4</label>
+      <input id="xor4" type="text" class="form-control" v-model="data.xor.four">
+    </div>
   </main>
 </template>
 
